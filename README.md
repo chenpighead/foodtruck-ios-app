@@ -1,7 +1,7 @@
 # foodtruck-ios-app
 ------
 
-This is a iOS client for [SF-Food-Truck](https://github.com/chenpighead/SF-Food-Truck) project.
+This is a iOS client for [SF Food Trucks](https://github.com/chenpighead/SF-Food-Truck) project.
 
 Go check `MapViewController.swift` for most of the front-end logic, API server calls, and data processing / presentation.
 
@@ -32,20 +32,19 @@ I use [CocoaPods](https://cocoapods.org/) to manage Swift dependencies:
 
 ## Running
 
-* Initial view will center at Uber HQ. All the food trucks are shown on the map without filtering
-
-* Tap on the marker to show more information about the food truck
-
-* Search for specific food truck (or food name) through the search bar on the top
+- Initial view will center at Uber HQ. All the food trucks are shown on the map without filtering
+- Tap on the marker to show more information about the food truck
+- Search for specific food truck (or food name) through the search bar on the top
 ```
 ex. coffee
 ```
-
-* Search for specific food truck (or food name) plus a trailing 'nearby' keyword
+- Search for specific food truck (or food name) plus a trailing 'nearby' keyword
 ```
 ex. coffee nearby
 ```
-* Note that we haven't support getCurrentLocation() from the mobile client, so this feature would return results nearby Uber HQ for now
+  - Note that I haven't support getCurrentLocation() from the mobile client, so this feature would return results nearby Uber HQ for now
+
+- Search with invalid input (so far, I only treat empty string as invalid) will lead user back to initial view (show all food trucks)
 
 ## Discussion
 
