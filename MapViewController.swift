@@ -53,17 +53,14 @@ class MapViewController: UIViewController{
         self.view.addGestureRecognizer(tapGesture)
 
         // default view, would center at Uber HQ
-        let camera = GMSCameraPosition.camera(withLatitude: 37.7811489,
-                                              longitude: -122.4579986,
-                                              zoom: zoomLevel)
-        self.mapView.camera = camera
+        moveMarkerIntoView(isDefault: true)
 
         self.mapView.isMyLocationEnabled = true
         self.mapView.settings.myLocationButton = false
         self.mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         self.mapView.isHidden = false
 
-        getStoresFromServer()
+        getAllStoresFromServer()
     }
 
     @objc func dismissKeyboard (_ sender: UITapGestureRecognizer) {
@@ -107,28 +104,46 @@ class MapViewController: UIViewController{
             self.present(alertController, animated: true, completion: nil)
 
             // Go back to show default initial markers for invalid search
-            getStoresFromServer()
+            getAllStoresFromServer()
         }
     }
 
     // Call API server to get data from backend, and store in local data structure: storesFromServer
-    func getStoresFromServer(){
+    func getAllStoresFromServer(){
+        let URL = "https://uber-foodtruck.herokuapp.com/api/shops"
+        updateStoresFromServer(requestUrl: URL, isDefaultView: true)
+    }
+
+    func getStoresByName(searchText: String) {
+        let escapedSearchText = searchText.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+        let searchUrl = "https://uber-foodtruck.herokuapp.com/api/shops?filter[where][$text][search]="+escapedSearchText!
+        print("searchUrl: ",searchUrl)
+
+        updateStoresFromServer(requestUrl: searchUrl, isDefaultView: false)
+    }
+
+    func getNearbyStoresByName(searchText: String) {
+        let escapedSearchText = searchText.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+        // XXX: use client's current lat, lng instead!
+        let searchUrl = "https://uber-foodtruck.herokuapp.com/api/shops/nearby/?lat=0&lng=0&name="+escapedSearchText!
+        print("searchUrl: ",searchUrl)
+
+        updateStoresFromServer(requestUrl: searchUrl, isDefaultView: false)
+    }
+
+    func updateStoresFromServer(requestUrl: String, isDefaultView: Bool){
         // XXX: Here goes headers and authentication data
 
         // Run spinner effect to show that a task is in progress
         let spinner: UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 150, height: 150)) as UIActivityIndicatorView
         spinner.startAnimating()
         self.activityIndicator.startAnimating()
-
-        let URL = "https://uber-foodtruck.herokuapp.com/api/shops"
-
-        Alamofire.request(URL, method: .get)
+        Alamofire.request(requestUrl, method: .get)
             .responseJSON { response in
                 switch response.result {
                 case .success:
                     // Remove existing dataFromServer so we only show markers for up-to-date results
                     self.storesFromServer.removeAll()
-
                     if let value = response.result.value {
                         let json = JSON(value)
                         print("StoresFromServer JSON: \(json)")
@@ -142,7 +157,6 @@ class MapViewController: UIViewController{
                                 print("JSONdata title: \(title)")
                                 let storeDescription = result["dayshours"].stringValue + "\n" + result["FoodItems"].stringValue
                                 print("JSONdata Description: \(storeDescription)")
-
                                 let lat = result["Latitude"].doubleValue
                                 print("JSONdata lat: \(lat)")
 
@@ -150,13 +164,13 @@ class MapViewController: UIViewController{
                                 print("JSONdata lon: \(lon)")
 
                                 let store = storeClass(title: title, storeDescription: storeDescription, latitude: lat, longitude: lon)
-
                                 self.storesFromServer.append(store)
                             }
                         }
                         self.activityIndicator.stopAnimating()
                         self.spinner.stopAnimating()
                         self.showStoresMarkerOnMap()
+                        self.moveMarkerIntoView(isDefault: isDefaultView)
                     }
                 case .failure(let error):
                     print(error)
@@ -164,129 +178,24 @@ class MapViewController: UIViewController{
         }
     }
 
-    func getStoresByName(searchText: String) {
-        let escapedSearchText = searchText.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
-
-        let searchUrl = "https://uber-foodtruck.herokuapp.com/api/shops?filter[where][$text][search]="+escapedSearchText!
-        print("searchUrl: ",searchUrl)
-
-        // Run spinner effect to show that a task is in progress
-        let spinner: UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 150, height: 150)) as UIActivityIndicatorView
-        spinner.startAnimating()
-        self.activityIndicator.startAnimating()
-
-        Alamofire.request(searchUrl, method: .get)
-            .responseJSON { response in
-                switch response.result {
-                case .success:
-                    // Remove existing dataFromServer so we only show markers for up-to-date results
-                    self.storesFromServer.removeAll()
-
-                    if let value = response.result.value {
-                        let json = JSON(value)
-                        print("StoresFromServer JSON: \(json)")
-
-                        for result in json.arrayValue {
-                            let status = result["Status"].stringValue
-                            print("JSONdata status: \(status)")
-
-                            if(status=="APPROVED"){
-                                let title = result["Applicant"].stringValue
-                                print("JSONdata title: \(title)")
-                                let storeDescription = result["dayshours"].stringValue + "\n" + result["FoodItems"].stringValue
-                                print("JSONdata Description: \(storeDescription)")
-
-                                let lat = result["Latitude"].doubleValue
-                                print("JSONdata lat: \(lat)")
-
-                                let lon = result["Longitude"].doubleValue
-                                print("JSONdata lon: \(lon)")
-
-                                let store = storeClass(title: title, storeDescription: storeDescription, latitude: lat, longitude: lon)
-
-                                self.storesFromServer.append(store)
-                            }
-                        }
-                        self.activityIndicator.stopAnimating()
-                        self.spinner.stopAnimating()
-                        self.showStoresMarkerOnMap()
-
-                        if(self.storesFromServer.count != 0){
-                            // if we have search results to show, center app view into one of the result
-                            let camera =
-                                GMSCameraPosition.camera(
-                                    withLatitude: self.storesFromServer[0].latitude,
-                                    longitude: self.storesFromServer[0].longitude,
-                                    zoom: self.zoomLevel)
-                            self.mapView.camera = camera
-                        }
-                    }
-                case .failure(let error):
-                    print(error)
-                }
-        }
-    }
-
-    func getNearbyStoresByName(searchText: String) {
-        let escapedSearchText = searchText.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
-
-        let searchUrl = "https://uber-foodtruck.herokuapp.com/api/shops/nearby/?name="+escapedSearchText!
-        print("searchUrl: ",searchUrl)
-
-        // Run spinner effect to show that a task is in progress
-        let spinner: UIActivityIndicatorView = UIActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 150, height: 150)) as UIActivityIndicatorView
-        spinner.startAnimating()
-        self.activityIndicator.startAnimating()
-
-        Alamofire.request(searchUrl, method: .get)
-            .responseJSON { response in
-                switch response.result {
-                case .success:
-                    // Remove existing dataFromServer so we only show markers for up-to-date results
-                    self.storesFromServer.removeAll()
-
-                    if let value = response.result.value {
-                        let json = JSON(value)
-                        print("StoresFromServer JSON: \(json)")
-
-                        for result in json.arrayValue {
-                            let status = result["Status"].stringValue
-                            print("JSONdata status: \(status)")
-
-                            if(status=="APPROVED"){
-                                let title = result["Applicant"].stringValue
-                                print("JSONdata title: \(title)")
-                                let storeDescription = result["dayshours"].stringValue + "\n" + result["FoodItems"].stringValue
-                                print("JSONdata Description: \(storeDescription)")
-
-                                let lat = result["Latitude"].doubleValue
-                                print("JSONdata lat: \(lat)")
-
-                                let lon = result["Longitude"].doubleValue
-                                print("JSONdata lon: \(lon)")
-
-                                let store = storeClass(title: title, storeDescription: storeDescription, latitude: lat, longitude: lon)
-
-                                self.storesFromServer.append(store)
-                            }
-                        }
-                        self.activityIndicator.stopAnimating()
-                        self.spinner.stopAnimating()
-                        self.showStoresMarkerOnMap()
-
-                        if(self.storesFromServer.count != 0){
-                            // if we have search results to show, center app view into one of the result
-                            let camera =
-                                GMSCameraPosition.camera(
-                                    withLatitude: self.storesFromServer[0].latitude,
-                                    longitude: self.storesFromServer[0].longitude,
-                                    zoom: self.zoomLevel)
-                            self.mapView.camera = camera
-                        }
-                    }
-                case .failure(let error):
-                    print(error)
-                }
+    func moveMarkerIntoView(isDefault: Bool) {
+        if (isDefault || self.storesFromServer.count == 0) {
+            // default view, would center at Uber HQ
+            let camera =
+                GMSCameraPosition.camera(
+                    withLatitude: 37.7811489,
+                    longitude: -122.4579986,
+                    zoom: self.zoomLevel)
+            self.mapView.camera = camera
+        } else {
+            // self.storesFromServer.count != 0
+            // if we have search results to show, center app view into one of the result
+            let camera =
+                GMSCameraPosition.camera(
+                    withLatitude: self.storesFromServer[0].latitude,
+                    longitude: self.storesFromServer[0].longitude,
+                    zoom: self.zoomLevel)
+            self.mapView.camera = camera
         }
     }
 

@@ -5,7 +5,7 @@ This is a iOS client for [SF Food Trucks](https://github.com/chenpighead/SF-Food
 
 Go check `MapViewController.swift` for most of the front-end logic, API server calls, and data processing / presentation.
 
-Note that the complete project, source code, dependencies are zipped in one zip file: **[Download](https://drive.google.com/file/d/1aE4PK3nAIneN9K7FPMN2viSpl0nFm_4i/view?usp=sharing)**
+Note that the complete project, source code, dependencies are zipped in one zip file: **[Download](https://drive.google.com/file/d/19GTPl4zu0AvafZxkv1pRi2wraw9Rt4WO/view?usp=sharing)**
 
 I separate `MapViewController.swift` file in this repo is just for review purpose.
 
@@ -23,7 +23,7 @@ I use [CocoaPods](https://cocoapods.org/) to manage Swift dependencies:
 
 ## Downloading and building
 
-1. [Download](https://drive.google.com/file/d/1aE4PK3nAIneN9K7FPMN2viSpl0nFm_4i/view?usp=sharing) the zip file and unzip it
+1. [Download](https://drive.google.com/file/d/19GTPl4zu0AvafZxkv1pRi2wraw9Rt4WO/view?usp=sharing) the zip file and unzip it
 2. Open `Uber Food Truck.xcworkspace`
 3. In Xcode, go to ***Uber Food Truck -> General -> Signing*** to add a valid developer Team
 4. Connect to an iPhone device (with USB)
